@@ -15,11 +15,13 @@ mod screens;
 mod sun_system;
 mod sound;
 mod trails;
+mod effects;
+mod achievements;
 
 use std::ops::{Deref, DerefMut};
 use crate::screens::Screen;
 use bevy::log::LogPlugin;
-use bevy::window::WindowResolution;
+use bevy::window::{WindowResolution};
 use bevy::{asset::AssetMetaCheck, prelude::*};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -68,12 +70,14 @@ impl Plugin for AppPlugin {
             dev_tools::plugin,
             screens::plugin,
             sun_system::plugin,
+            effects::plugin,
             launching::plugin,
             collision::plugin,
             score::plugin,
             hud::HudPlugin,
             sound::SoundPlugin,
             trails::TrailsPlugin,
+            achievements::AchievementsPlugin,
         ));
         // Tell bevy that our AppSystems should always be executed in the below order
         app.configure_sets(

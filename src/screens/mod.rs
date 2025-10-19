@@ -2,12 +2,11 @@
 
 mod loading;
 mod gameplay;
-mod gameover;
+pub(crate) mod gameover;
 //mod splash;
 //mod title;
 
 use bevy::prelude::*;
-use crate::collision::FatalCollisionEvent;
 
 pub(super) fn plugin(app: &mut App) {
     app.init_state::<Screen>();

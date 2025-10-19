@@ -1,12 +1,6 @@
 //! The screen state for the main gameplay.
 
-use bevy::input::common_conditions::input_just_pressed;
-use bevy::input::mouse::MouseWheel;
-use crate::sun_system::{init_sun_system, Satellite, Sun};
 use bevy::prelude::*;
-use bevy::time::common_conditions::paused;
-use crate::collision::FatalCollisionEvent;
-use crate::GameplaySystem;
 use crate::score::Score;
 use crate::screens::Screen;
 use crate::sun_system::SolarSystemAssets;
@@ -15,13 +9,15 @@ use crate::sun_system::SolarSystemAssets;
 #[derive(Resource, Default)]
 pub struct GameEnd{
     pub game_end_time: f32,
-    pub ktype: f32
+    pub ktype: f32,
+    pub enabled: bool,
 }
 
 pub(super) fn plugin(app: &mut App) {
-    app.insert_resource(GameEnd{game_end_time:600.0, ktype: 0.0});
+    app.insert_resource(GameEnd{game_end_time:600.0, ktype: 0.0, enabled: false});
     app.add_systems(Update, enter_gameover_screen.run_if(in_state(Screen::Gameplay).and(is_gameover)));
     app.add_systems(OnEnter(Screen::Gameover), show_game_over);
+    app.add_systems(OnEnter(Screen::Gameplay), reset_game_end_timer);
 }
 
 
@@ -40,7 +36,7 @@ fn is_gameover( score: Res<Score>,
                       time: Res<Time>,
                       game_end: Res<GameEnd>) -> bool {
     // 400 Yottawatt are 4 x 10^26, Kardashev type two,2.0 energy threshold
-   if( time.elapsed_secs() - game_end.game_end_time > 0. || score.energy_rate >= 400.){
+   if (game_end.enabled && (time.elapsed_secs() - game_end.game_end_time > 0.)) || score.energy_rate >= 400. {
        return true;
    }
     return false;
@@ -53,11 +49,13 @@ struct GameOverPopup;
 fn show_game_over(mut commands: Commands, mut score: ResMut<Score>,
                   mut game_end: ResMut<GameEnd>,
                   solar_system_assets: Res<SolarSystemAssets>) {
-    if(score.energy_rate >= 400.){ score.energy_rate=400.;}
+    if score.energy_rate >= 400. { score.energy_rate=400.;}
     //let toYotta: f64=(score.energy_rate/100.) as f64* 1e24_f64; // multiplied by yotta
 
     game_end.ktype = (1.0 + (score.energy_rate - 1.0) / 399.0).clamp(1.0, 2.0);//((toYotta.log10() - 6.0) / 10.0).abs();//((score.energy_rate.log10() + 9.0) / 10.0).max(0.0);
     info!("show Game Over {}", game_end.ktype);
+    // Stop countdown immediately on game over (e.g., win by energy)
+    game_end.enabled = false;
 
     let text_center = Justify::Center;
     let mut better_earth = "";
@@ -65,7 +63,7 @@ fn show_game_over(mut commands: Commands, mut score: ResMut<Score>,
         better_earth="You generate more Energy than 2 Earths!";
     }
     let mut game_end_string = "GAME OVER";
-    if(score.energy_rate >= 400.){
+    if score.energy_rate >= 400. {
         game_end_string = "YOU WON!";
     }
     // Game-Over Popup
@@ -204,4 +202,11 @@ fn show_game_over(mut commands: Commands, mut score: ResMut<Score>,
             )
         ],
     ));
+}
+
+fn reset_game_end_timer(mut game_end: ResMut<GameEnd>, time: Res<Time>) {
+    // Enable and start countdown whenever we enter Gameplay
+    game_end.enabled = true;
+    game_end.game_end_time = time.elapsed_secs() + game_end.game_end_time;
+    game_end.ktype = 0.0;
 }

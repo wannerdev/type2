@@ -21,8 +21,8 @@ pub struct Score {
 impl Default for Score {
     fn default() -> Self {
         Self {
-            energy_rate: 1.0,
-            energy_stored: 1.0,
+            energy_rate: 5.0,
+            energy_stored: 8000.0,
             rate_history: VecDeque::new(),
             history_duration: 60.0,
         }
@@ -81,6 +81,6 @@ fn update_score(
     } else {
         score.energy_rate = instant_rate;
     }
-
+    score.energy_rate += 42.; //base_rate;
     score.energy_stored += score.energy_rate * time.delta_secs();
 }
