@@ -162,7 +162,7 @@ let collector_id = commands.spawn((
         Sprite::from(sprite),
         TextColor(Color::from(GREEN)),
         Thruster::new(ThrusterDirection::Retrograde, 2.0),
-        HitBox { radius: 4.0 },
+        HitBox { radius: 8.0 },
         NavigationInstruments,
         Satellite,
         CollectorStats {
@@ -311,7 +311,7 @@ fn start_launch_from_touch_end(
         Sprite::from(sprite),
         TextColor(Color::from(GREEN)),
         Thruster::new(ThrusterDirection::Retrograde, 2.0),
-        HitBox { radius: 4.0 },
+        HitBox { radius: 8.0 },
         NavigationInstruments,
         Satellite,
         CollectorStats {
@@ -529,4 +529,3 @@ fn sun_thruster_touch(
         }
     }
 }
-
