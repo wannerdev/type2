@@ -1,10 +1,11 @@
 use crate::GameplaySystem;
 use crate::collision::FatalCollisionEvent;
-use crate::launching::{LaunchState, SatellitePriceFactor};
+use crate::launching::{LaunchState, SatellitePriceFactor, Fuel};
 use crate::score::Score;
 use crate::screens::{gameover, Screen};
-use crate::sun_system::{SolarSystemAssets, Sun};
+use crate::sun_system::{SolarSystemAssets, Sun, Satellite};
 use crate::sun_system::asteroids::AsteroidSwarmSpawned;
+use crate::sun_system::navigation_instruments::NavigationInstruments;
 
 // Generated at compile-time by build.rs
 include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
@@ -29,6 +30,7 @@ impl Plugin for HudPlugin {
                     update_countdown,
                     handle_music_button,
                     update_music_button_visual,
+                    update_spacebar_indicator,
                 )
                 .in_set(GameplaySystem),
             );
@@ -89,6 +91,15 @@ struct CountdownText;
 struct MusicButton;
 #[derive(Component)]
 struct MusicButtonText;
+
+#[derive(Component)]
+struct HighestEarnerText;
+
+#[derive(Component)]
+struct HighestEarnerDistanceText;
+
+#[derive(Component)]
+struct SpacebarIndicator;
 
 fn setup_hud(mut commands: Commands, solar_system_assets: Res<SolarSystemAssets>) {
     // TOP LEFT: Energy Rate and Total Energy Storage
@@ -174,6 +185,40 @@ fn setup_hud(mut commands: Commands, solar_system_assets: Res<SolarSystemAssets>
                 },
                 TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
                 MusicButtonText,
+            )
+        ],
+    ));
+
+    // BOTTOM LEFT — Spacebar indicator (to the right of music button)
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(15.0),
+            left: Val::Px(200.0),
+            width: Val::Px(120.0),
+            height: Val::Px(50.0),
+            border: UiRect::all(Val::Px(BORDER)),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        BackgroundColor(Color::srgb(0.0, 0.0, 0.0)),
+        Outline {
+            width: Val::Px(2.0),
+            offset: Default::default(),
+            color: Color::xyz(0.4811, 0.3064, 0.0253),
+        },
+        Visibility::Hidden,
+        SpacebarIndicator,
+        children![
+            (
+                Text::new("[SPACE]"),
+                TextFont {
+                    font: solar_system_assets.font.clone(),
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
             )
         ],
     ));
@@ -717,5 +762,18 @@ fn handle_music_button(
                 ));
             }
         }
+    }
+}
+
+fn update_spacebar_indicator(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut spacebar_query: Query<&mut Visibility, With<SpacebarIndicator>>,
+) {
+    let Ok(mut visibility) = spacebar_query.single_mut() else { return; };
+
+    if keyboard_input.pressed(KeyCode::Space) {
+        *visibility = Visibility::Visible;
+    } else {
+        *visibility = Visibility::Hidden;
     }
 }
