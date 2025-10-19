@@ -492,7 +492,7 @@ fn sun_thruster_touch(
     window_q: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     sun_q: Query<(&GlobalTransform, &HitBox), With<Sun>>,
-    mut selected_thruster: Query<(&mut Thruster, Entity), (With<NavigationInstruments>, With<Thruster>)>,
+    mut selected_thruster: Query<(&mut Thruster, &Fuel, Entity), (With<NavigationInstruments>, With<Thruster>)>,
     mut thr_touch: ResMut<ThrusterTouch>,
 ) {
     let Some((camera, cam_gt)) = camera_query.iter().next() else { return; };
@@ -509,9 +509,12 @@ fn sun_thruster_touch(
                     let dist = sun_pos.distance(world_pos);
                     let radius = hb.radius;
                     if dist <= radius {
-                        if let Ok((mut thr, _)) = selected_thruster.single_mut() {
-                            thr.active = true;
-                            thr_touch.active_touch_id = Some(t.id);
+                        // Only activate thruster if satellite has fuel
+                        if let Ok((mut thr, fuel, _)) = selected_thruster.single_mut() {
+                            if fuel.amount > 0.0 {
+                                thr.active = true;
+                                thr_touch.active_touch_id = Some(t.id);
+                            }
                         }
                         break;
                     }
@@ -519,7 +522,7 @@ fn sun_thruster_touch(
             }
             TouchPhase::Ended | TouchPhase::Canceled => {
                 if thr_touch.active_touch_id == Some(t.id) {
-                    if let Ok((mut thr, _)) = selected_thruster.single_mut() {
+                    if let Ok((mut thr, _, _)) = selected_thruster.single_mut() {
                         thr.active = false;
                     }
                     thr_touch.active_touch_id = None;
@@ -529,4 +532,3 @@ fn sun_thruster_touch(
         }
     }
 }
-
