@@ -4,6 +4,9 @@ use crate::sun_system::{Sun, Satellite, Level};
 use crate::collision::{FatalCollisionEvent, HitBox};
 mod red_star;
 mod gravity_viz;
+mod selection_glow;
+mod touch_feedback;
+mod launch_arrow;
 
 #[derive(Resource)]
 struct SunFlameConfig {
@@ -37,6 +40,9 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(Update, (update_and_render_swallow_fx).in_set(GameplaySystem));
     red_star::plugin(app);
     gravity_viz::plugin(app);
+    selection_glow::plugin(app);
+    touch_feedback::plugin(app);
+    launch_arrow::plugin(app);
 }
 
 fn draw_sun_flames(
@@ -185,5 +191,3 @@ fn update_and_render_swallow_fx(
         }
     }
 }
-
-
