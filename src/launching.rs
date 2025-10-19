@@ -57,9 +57,15 @@ pub struct ThrusterTouch {
     pub active_touch_id: Option<u64>,
 }
 
+#[derive(Resource, Default)]
+pub struct LaunchCounter {
+    pub count: u32,
+}
+
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<LaunchArmed>();
     app.init_resource::<ThrusterTouch>();
+    app.init_resource::<LaunchCounter>();
     app.add_systems(
         Update,
         (
@@ -99,6 +105,7 @@ fn start_new_launch(
     mut score: ResMut<Score>,
     satellite_price_factor: Res<SatellitePriceFactor>,
     current_marked: Query<Entity, With<NavigationInstruments>>,
+    mut launch_counter: ResMut<LaunchCounter>,
 ) {
 
     let Some(launch_pad_transform) = launch_pad_query.iter().next() else { return; };
@@ -146,6 +153,24 @@ fn start_new_launch(
     } else {
         return;
     }
+    
+    // Increment launch counter and play appropriate sound
+    launch_counter.count += 1;
+    if launch_counter.count % 10 == 0 {
+        // Every 10th launch: play special sound (using warning sound as placeholder)
+        commands.spawn((
+            AudioPlayer::new(solar_system_assets.warning_sound.clone()),
+            PlaybackSettings::DESPAWN,
+        ));
+        info!("Special launch sound! (Launch #{})", launch_counter.count);
+    } else {
+        // Regular launch: play normal beep sound
+        commands.spawn((
+            AudioPlayer::new(solar_system_assets.warning_sound.clone()),
+            PlaybackSettings::DESPAWN,
+        ));
+    }
+    
     // Ensure only the newly launched satellite will be selected
     for e in current_marked.iter() {
         commands.entity(e).remove::<NavigationInstruments>();
@@ -246,7 +271,8 @@ fn start_launch_from_touch_end(
     mut score: ResMut<Score>,
     current_marked: Query<Entity, With<NavigationInstruments>>,
     time: Res<Time>,
-    price: Res<SatellitePriceFactor>
+    price: Res<SatellitePriceFactor>,
+    mut launch_counter: ResMut<LaunchCounter>,
 ) {
     let Some(launch_pad_transform) = launch_pad_query.iter().next() else { return; };
     let launch_position = launch_pad_transform.translation;
@@ -295,6 +321,24 @@ fn start_launch_from_touch_end(
     } else {
         return;
     }
+    
+    // Increment launch counter and play appropriate sound
+    launch_counter.count += 1;
+    if launch_counter.count % 10 == 0 {
+        // Every 10th launch: play special sound
+        commands.spawn((
+            AudioPlayer::new(solar_system_assets.warning_sound.clone()),
+            PlaybackSettings::DESPAWN,
+        ));
+        info!("Special launch sound! (Launch #{})", launch_counter.count);
+    } else {
+        // Regular launch: play normal beep sound
+        commands.spawn((
+            AudioPlayer::new(solar_system_assets.warning_sound.clone()),
+            PlaybackSettings::DESPAWN,
+        ));
+    }
+    
     // Ensure only the newly launched satellite will be selected
     for e in current_marked.iter() {
         commands.entity(e).remove::<NavigationInstruments>();
@@ -529,4 +573,3 @@ fn sun_thruster_touch(
         }
     }
 }
-
