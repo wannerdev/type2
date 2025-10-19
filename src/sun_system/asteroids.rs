@@ -160,7 +160,6 @@ fn spawn_asteroids(
                 .with_rotation(Quat::from_axis_angle(Vec3::Z, direction)),
             InheritedVisibility::default(),
             Velocity(Vec2::from_angle(direction + 0.5 * PI) * speed),
-            HitBox { radius: 14.0 },
         ))
         .id();
 
@@ -191,7 +190,9 @@ fn spawn_asteroids(
                     .with_scale(Vec3::splat(0.01))
                     .with_rotation(Quat::from_axis_angle(Vec3::X, PI)),
                 Sprite::from(assets.asteroid.clone()),
-
+                // Add individual hitbox for each asteroid
+                HitBox { radius: 2.5 },
+                Level{level:-1.},
             ));
         }
     }
