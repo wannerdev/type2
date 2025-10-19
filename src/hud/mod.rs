@@ -3,8 +3,9 @@ use crate::collision::FatalCollisionEvent;
 use crate::launching::{LaunchState, SatellitePriceFactor};
 use crate::score::Score;
 use crate::screens::{gameover, Screen};
-use crate::sun_system::{SolarSystemAssets, Sun};
+use crate::sun_system::{SolarSystemAssets, Sun, Satellite};
 use crate::sun_system::asteroids::AsteroidSwarmSpawned;
+use crate::sun_system::navigation_instruments::NavigationInstruments;
 
 // Generated at compile-time by build.rs
 include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
@@ -39,6 +40,7 @@ impl Plugin for HudPlugin {
             already_pressed_space: false,
             already_pressed_lmb: false,
             is_mobile: false,
+            already_hovered_satellite: false,
         });
     }
 }
@@ -74,6 +76,7 @@ struct HudState {
     already_pressed_space: bool,
     already_pressed_lmb: bool,
     is_mobile: bool,
+    already_hovered_satellite: bool,
 }
 
 #[derive(Component)]
@@ -593,6 +596,7 @@ fn update_explanation_text(
     mut explanation_text_query: Query<&mut Text, With<ExplanationText>>,
     mut explanation_container_query: Query<&mut Visibility, With<ExplanationContainer>>,
     mut hud_state: ResMut<HudState>,
+    satellite_query: Query<(), (With<Satellite>, With<NavigationInstruments>)>,
 ) {
     let mut explanation_text = explanation_text_query.single_mut().unwrap();
     let mut container_visibility = explanation_container_query.single_mut().unwrap();
@@ -601,6 +605,9 @@ fn update_explanation_text(
     let mut saw_touch = false;
     for _ in er_touch.read() { saw_touch = true; break; }
     if saw_touch { hud_state.is_mobile = true; }
+
+    // Check if any satellite is currently selected (has NavigationInstruments)
+    let satellite_selected = !satellite_query.is_empty();
 
     if hud_state.is_mobile {
         // Mobile placeholder explanations
@@ -620,10 +627,16 @@ fn update_explanation_text(
         }
         return;
     }else {
-        // Desktop (mouse/keyboard) behavior stays unchanged
+        // Desktop (mouse/keyboard) behavior with hover tutorial
         if !hud_state.already_pressed_space {
             if mouse_input.pressed(MouseButton::Left) {
                 hud_state.already_pressed_space = true;
+                explanation_text.0 = "HOVER OVER SATELLITE TO VIEW ORBIT".to_string();
+            }
+        } else if !hud_state.already_hovered_satellite {
+            // Check if user has hovered over a satellite
+            if satellite_selected {
+                hud_state.already_hovered_satellite = true;
                 explanation_text.0 = "PRESS SPACE TO SLOW DOWN".to_string();
             }
         } else if !hud_state.already_pressed_lmb {
