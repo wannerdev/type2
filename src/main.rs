@@ -25,6 +25,7 @@ use bevy::window::{WindowResolution};
 use bevy::{asset::AssetMetaCheck, prelude::*};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
+use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
@@ -60,6 +61,10 @@ impl Plugin for AppPlugin {
                     ..default()
                 }),
         );
+        
+        // Add framepace plugin for mobile performance optimization
+        app.add_plugins(FramepacePlugin);
+        
         app.insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)));
 
         // add our own plugins
@@ -79,6 +84,9 @@ impl Plugin for AppPlugin {
             trails::TrailsPlugin,
             achievements::AchievementsPlugin,
         ));
+        
+        // Configure framerate limiting for better mobile performance
+        app.add_systems(Startup, setup_framerate_limiter);
         // Tell bevy that our AppSystems should always be executed in the below order
         app.configure_sets(
             Update,
@@ -154,4 +162,12 @@ impl DerefMut for RandomSource {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
+}
+
+/// Configure framerate limiting for better mobile performance
+fn setup_framerate_limiter(mut settings: ResMut<FramepaceSettings>) {
+    // Limit to 60 FPS for better mobile performance and battery life
+    // This helps reduce lag on mobile devices with lower-end GPUs
+    settings.limiter = Limiter::from_framerate(60.0);
+    info!("Framerate limiter set to 60 FPS for mobile optimization");
 }
