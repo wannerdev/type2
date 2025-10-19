@@ -17,6 +17,7 @@ use crate::collision::HitBox;
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((earth::plugin, asteroids::plugin));
     app.load_resource::<SolarSystemAssets>();
+    app.init_resource::<navigation_instruments::ShowAllOrbits>();
     app.add_systems(
         FixedUpdate,
         (thruster::apply_thrust_force)
