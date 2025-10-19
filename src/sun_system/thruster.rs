@@ -4,6 +4,7 @@ use crate::physics::velocity::Velocity;
 use bevy::prelude::*;
 use std::ops::Neg;
 use crate::launching::Fuel;
+use crate::sun_system::navigation_instruments::NavigationInstruments;
 
 pub const THRUSTER_KEY: KeyCode = KeyCode::Space;
 
@@ -38,12 +39,13 @@ impl Thruster {
     }
 }
 
-pub fn toggle_thruster(mut query: Query<(&mut Thruster, &Fuel)>) {
-    for (mut thruster, fuel) in query.iter_mut() {
-        if fuel.amount > 0.0 {
+pub fn toggle_thruster(mut query: Query<(&mut Thruster, &Fuel, Has<NavigationInstruments>)>) {
+    for (mut thruster, fuel, has_nav) in query.iter_mut() {
+        // Only toggle thruster if satellite is selected (has NavigationInstruments)
+        if has_nav && fuel.amount > 0.0 {
             thruster.active = !thruster.active;
         } else {
-            // Make sure it never flips on when empty
+            // Make sure it never flips on when not selected or when empty
             thruster.active = false;
         }
     }
