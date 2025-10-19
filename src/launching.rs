@@ -15,6 +15,7 @@ use bevy::input::common_conditions::{input_just_pressed, input_just_released};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy::input::touch::{TouchInput, TouchPhase};
+use crate::satellite_names_advanced::{SatelliteSpawnStats, codename_for_satellite, SatelliteLabel, LabelFade};
 
 #[derive(Component)]
 pub struct LaunchPad;
@@ -99,6 +100,7 @@ fn start_new_launch(
     mut score: ResMut<Score>,
     satellite_price_factor: Res<SatellitePriceFactor>,
     current_marked: Query<Entity, With<NavigationInstruments>>,
+    mut spawn_stats: ResMut<SatelliteSpawnStats>,
 ) {
 
     let Some(launch_pad_transform) = launch_pad_query.iter().next() else { return; };
@@ -146,6 +148,21 @@ fn start_new_launch(
     } else {
         return;
     }
+    
+    // Update spawn statistics
+    spawn_stats.global_spawn_idx = spawn_stats.global_spawn_idx.wrapping_add(1);
+    let level_key = lvl as u32;
+    let level_counter = spawn_stats.per_level_spawn_idx.entry(level_key).or_insert(0);
+    *level_counter = level_counter.saturating_add(1);
+    
+    // Determine codename
+    let maybe_codename = codename_for_satellite(
+        lvl,
+        *level_counter,
+        spawn_stats.global_spawn_idx,
+        &mut spawn_stats,
+    );
+    
     // Ensure only the newly launched satellite will be selected
     for e in current_marked.iter() {
         commands.entity(e).remove::<NavigationInstruments>();
@@ -200,6 +217,30 @@ let collector_id = commands.spawn((
         Visibility::Visible,
         Pickable::IGNORE,
     ));
+    
+    // Spawn label with fade-in animation if satellite has a codename
+    if let Some(codename) = maybe_codename {
+        commands.spawn((
+            Text2d::new(codename),
+            Transform::default()
+                .with_translation(Vec3::new(0.0, -800.0, 1.0))
+                .with_scale(Vec3::splat(10.0)),
+            TextFont {
+                font: solar_system_assets.font.clone(),
+                font_size: 18.0,
+                ..default()
+            },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)), // Start transparent
+            ChildOf(collector_id),
+            SatelliteLabel,
+            LabelFade {
+                elapsed: 0.0,
+                duration: 0.5,
+                fade_in: true,
+            },
+            Pickable::IGNORE,
+        ));
+    }
 
     launch_state.launched_at_time = None;
 }
@@ -246,7 +287,8 @@ fn start_launch_from_touch_end(
     mut score: ResMut<Score>,
     current_marked: Query<Entity, With<NavigationInstruments>>,
     time: Res<Time>,
-    price: Res<SatellitePriceFactor>
+    price: Res<SatellitePriceFactor>,
+    mut spawn_stats: ResMut<SatelliteSpawnStats>,
 ) {
     let Some(launch_pad_transform) = launch_pad_query.iter().next() else { return; };
     let launch_position = launch_pad_transform.translation;
@@ -295,6 +337,21 @@ fn start_launch_from_touch_end(
     } else {
         return;
     }
+    
+    // Update spawn statistics
+    spawn_stats.global_spawn_idx = spawn_stats.global_spawn_idx.wrapping_add(1);
+    let level_key = lvl as u32;
+    let level_counter = spawn_stats.per_level_spawn_idx.entry(level_key).or_insert(0);
+    *level_counter = level_counter.saturating_add(1);
+    
+    // Determine codename
+    let maybe_codename = codename_for_satellite(
+        lvl,
+        *level_counter,
+        spawn_stats.global_spawn_idx,
+        &mut spawn_stats,
+    );
+    
     // Ensure only the newly launched satellite will be selected
     for e in current_marked.iter() {
         commands.entity(e).remove::<NavigationInstruments>();
@@ -349,6 +406,30 @@ fn start_launch_from_touch_end(
         Visibility::Visible,
         Pickable::IGNORE,
     ));
+    
+    // Spawn label with fade-in animation if satellite has a codename
+    if let Some(codename) = maybe_codename {
+        commands.spawn((
+            Text2d::new(codename),
+            Transform::default()
+                .with_translation(Vec3::new(0.0, -800.0, 1.0))
+                .with_scale(Vec3::splat(10.0)),
+            TextFont {
+                font: solar_system_assets.font.clone(),
+                font_size: 18.0,
+                ..default()
+            },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)), // Start transparent
+            ChildOf(collector_id),
+            SatelliteLabel,
+            LabelFade {
+                elapsed: 0.0,
+                duration: 0.5,
+                fade_in: true,
+            },
+            Pickable::IGNORE,
+        ));
+    }
 
     // disarm after launch
     launch_armed.0 = false;
@@ -529,4 +610,3 @@ fn sun_thruster_touch(
         }
     }
 }
-
