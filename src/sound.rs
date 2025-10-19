@@ -2,8 +2,8 @@ use bevy::audio::Volume;
 use bevy::prelude::*;
 use crate::collision::FatalCollisionEvent;
 use crate::screens::Screen;
-use crate::sun_system::{SolarSystemAssets, Sun};
-use crate::sun_system::asteroids::AsteroidSwarm;
+use crate::sun_system::{SolarSystemAssets, Sun, Satellite};
+use crate::sun_system::asteroids::{AsteroidSwarm, Asteroid};
 
 pub(crate) struct SoundPlugin;
 
@@ -61,20 +61,38 @@ fn handle_fatal_collision_event_for_sound(
     mut commands: Commands,
     solar_system_assets: Res<SolarSystemAssets>,
     asteroid_swarm_query: Query<Entity, With<AsteroidSwarm>>,
+    asteroid_query: Query<(), With<Asteroid>>,
     sun_query: Query<(), With<Sun>>,
+    satellite_query: Query<(), With<Satellite>>,
 ) {
+    // Skip sound for asteroid swarm parent entity (only play for individual asteroids)
     if let Ok(asteroid_swarm_entity) = asteroid_swarm_query.single() {
         if event.destroyed == asteroid_swarm_entity {
             return;
         }
     }
-    // Mute crash SFX when swallowed by the sun
-    if sun_query.get(event.other).is_ok() {
+    
+    // Check if collision involves the sun
+    let is_sun_collision = sun_query.get(event.other).is_ok();
+    
+    if is_sun_collision {
+        // Check if a satellite crashed into the sun (splash sound)
+        if satellite_query.get(event.destroyed).is_ok() {
+            // Play splash sound for satellite entering sun
+            // Using warning sound as placeholder for splash effect
+            commands.spawn((
+                AudioPlayer::new(solar_system_assets.warning_sound.clone()),
+                PlaybackSettings::DESPAWN,
+            ));
+            info!("Satellite splash into sun!");
+        }
+        // For asteroids into sun, play no sound (they just disappear)
         return;
     }
+    
+    // For all other collisions (satellite-satellite, satellite-asteroid), play crash sound
     commands.spawn((
         AudioPlayer::new(solar_system_assets.crash_sound.clone()),
         PlaybackSettings::DESPAWN,
     ));
-
 }
