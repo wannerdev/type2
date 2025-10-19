@@ -13,11 +13,17 @@ pub struct GameEnd{
     pub enabled: bool,
 }
 
+// Add RestartButton component
+#[derive(Component)]
+struct RestartButton;
+
 pub(super) fn plugin(app: &mut App) {
     app.insert_resource(GameEnd{game_end_time:600.0, ktype: 0.0, enabled: false});
     app.add_systems(Update, enter_gameover_screen.run_if(in_state(Screen::Gameplay).and(is_gameover)));
     app.add_systems(OnEnter(Screen::Gameover), show_game_over);
     app.add_systems(OnEnter(Screen::Gameplay), reset_game_end_timer);
+    // Add restart button handler
+    app.add_systems(Update, handle_restart_button.run_if(in_state(Screen::Gameover)));
 }
 
 
@@ -185,7 +191,7 @@ fn show_game_over(mut commands: Commands, mut score: ResMut<Score>,
                     ),
                     // Bottom bar decoration
                     (
-                        Text::new("═══════════════════════════"),
+                        Text::new("══════════════════════════"),
                         Node {
                             margin: UiRect::bottom(Val::Px(10.0)),
                             ..default()
@@ -197,11 +203,71 @@ fn show_game_over(mut commands: Commands, mut score: ResMut<Score>,
                         },
                         TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
                     ),
+                    // Restart Button
+                    (
+                        Node {
+                            width: Val::Px(200.0),
+                            height: Val::Px(50.0),
+                            border: UiRect::all(Val::Px(2.0)),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            margin: UiRect::top(Val::Px(15.0)),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgb(0.0, 0.0, 0.0)),
+                        Outline {
+                            width: Val::Px(2.0),
+                            offset: Default::default(),
+                            color: Color::xyz(0.4811, 0.3064, 0.0253),
+                        },
+                        Button,
+                        RestartButton,
+                        children![
+                            (
+                                Text::new("RESTART"),
+                                TextFont {
+                                    font: solar_system_assets.font.clone(),
+                                    font_size: 18.0,
+                                    ..default()
+                                },
+                                TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
+                                TextLayout::new_with_justify(text_center),
+                            )
+                        ],
+                    ),
 
                 ],
             )
         ],
     ));
+}
+
+fn handle_restart_button(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<RestartButton>),
+    >,
+    mut next_screen: ResMut<NextState<Screen>>,
+    mut score: ResMut<Score>,
+) {
+    for (interaction, mut color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
+                // Reset score
+                score.energy_rate = 0.0;
+                score.energy_stored = 500.0;
+                
+                // Transition back to gameplay
+                next_screen.set(Screen::Gameplay);
+            }
+            Interaction::Hovered => {
+                *color = BackgroundColor(Color::srgb(0.15, 0.15, 0.15));
+            }
+            Interaction::None => {
+                *color = BackgroundColor(Color::srgb(0.0, 0.0, 0.0));
+            }
+        }
+    }
 }
 
 fn reset_game_end_timer(mut game_end: ResMut<GameEnd>, time: Res<Time>) {
