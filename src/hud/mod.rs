@@ -1,6 +1,6 @@
 use crate::GameplaySystem;
 use crate::collision::FatalCollisionEvent;
-use crate::launching::{LaunchState, SatellitePriceFactor, Fuel};
+use crate::launching::{LaunchState, SatellitePriceFactor,CollectorStats};
 use crate::score::Score;
 use crate::screens::{gameover, Screen};
 use crate::sun_system::{SolarSystemAssets, Sun, Satellite};
@@ -32,6 +32,7 @@ impl Plugin for HudPlugin {
                     update_music_button_visual,
                     handle_orbit_toggle_button,
                     update_orbit_toggle_button_visual,
+                    update_highest_earner_display,
                 )
                 .in_set(GameplaySystem),
             );
@@ -93,15 +94,17 @@ struct MusicButton;
 #[derive(Component)]
 struct MusicButtonText;
 
+// Top Sat View
 #[derive(Component)]
 struct HighestEarnerText;
-
+// Top Sat View
 #[derive(Component)]
 struct HighestEarnerDistanceText;
 
 #[derive(Component)]
 struct SpacebarIndicator;
 
+// Orbit button
 #[derive(Component)]
 struct OrbitToggleButton;
 
@@ -265,6 +268,59 @@ fn setup_hud(mut commands: Commands, solar_system_assets: Res<SolarSystemAssets>
                 },
                 TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
                 CountdownText
+            )
+        ],
+    ));
+
+    // TOP RIGHT (below countdown): Highest Earning Satellite Tracker
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(85.0),
+            right: Val::Px(15.0),
+            width: Val::Px(150.0),
+            height: Val::Px(100.0),
+            border: UiRect::all(Val::Px(BORDER)),
+            ..default()
+        },
+        BackgroundColor(Color::srgb(0.0, 0.0, 0.0)),
+        Outline {
+            width: Val::Px(2.0),
+            offset: Default::default(),
+            color: Color::xyz(0.4811, 0.3064, 0.0253),
+        },
+        children![
+            (
+                Text::new("TOP SAT\n+0.00 YW"),
+                Node {
+                    position_type: PositionType::Relative,
+                    top: Val::Px(5.0),
+                    left: Val::Px(15.0),
+                    ..default()
+                },
+                TextFont {
+                    font: solar_system_assets.font.clone(),
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
+                HighestEarnerText
+            ),
+            (
+                Text::new("DIST: 0"),
+                Node {
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(55.0),
+                    left: Val::Px(15.0),
+                    ..default()
+                },
+                TextFont {
+                    font: solar_system_assets.font.clone(),
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
+                HighestEarnerDistanceText
             )
         ],
     ));
@@ -795,5 +851,42 @@ fn update_orbit_toggle_button_visual(
         text.0 = "ORBIT\nON".to_string();
     } else {
         text.0 = "ORBIT\nOFF".to_string();
+    }
+}
+fn update_highest_earner_display(
+    satellite_query: Query<(&Transform, &CollectorStats), With<Satellite>>,
+    sun_query: Query<&Transform, With<Sun>>,
+    mut earner_text_query: Query<&mut Text, With<HighestEarnerText>>,
+    mut distance_text_query: Query<&mut Text, (With<HighestEarnerDistanceText>, Without<HighestEarnerText>)>,
+) {
+    let Ok(sun_transform) = sun_query.single() else { return; };
+    let sun_position = sun_transform.translation;
+
+    // Find the satellite with the highest energy rate
+    let mut highest_rate = 0.0;
+    let mut closest_distance = f32::MAX;
+
+    for (sat_transform, stats) in satellite_query.iter() {
+        if stats.energy_rate > highest_rate {
+            highest_rate = stats.energy_rate;
+            closest_distance = sat_transform.translation.distance(sun_position);
+        }
+    }
+
+    // Update the UI text
+    if let Ok(mut text) = earner_text_query.single_mut() {
+        if highest_rate > 0.0 {
+            text.0 = format!("TOP SAT\n+{:.2} YW", highest_rate);
+        } else {
+            text.0 = "TOP SAT\n+0.00 YW".to_string();
+        }
+    }
+
+    if let Ok(mut text) = distance_text_query.single_mut() {
+        if closest_distance < f32::MAX {
+            text.0 = format!("DIST: {:.0}", closest_distance);
+        } else {
+            text.0 = "DIST: 0".to_string();
+        }
     }
 }
