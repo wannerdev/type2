@@ -17,6 +17,7 @@ mod sound;
 mod trails;
 mod effects;
 mod achievements;
+mod dyson_sphere;
 
 use std::ops::{Deref, DerefMut};
 use crate::screens::Screen;
@@ -78,6 +79,7 @@ impl Plugin for AppPlugin {
             sound::SoundPlugin,
             trails::TrailsPlugin,
             achievements::AchievementsPlugin,
+            dyson_sphere::plugin,
         ));
         // Tell bevy that our AppSystems should always be executed in the below order
         app.configure_sets(
