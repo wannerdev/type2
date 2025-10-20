@@ -15,6 +15,7 @@ use bevy::input::common_conditions::{input_just_pressed, input_just_released};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy::input::touch::{TouchInput, TouchPhase};
+use crate::damage_system::{Health, DemoteCooldown};
 
 #[derive(Component)]
 pub struct LaunchPad;
@@ -170,6 +171,8 @@ let collector_id = commands.spawn((
             _total_collected: 0.0,
         },
         Pickable::default(),
+        Health::new(lvl),
+        DemoteCooldown::new(lvl),
     ))
         .observe(on_hover_collector_over)
         .id();
@@ -319,6 +322,8 @@ fn start_launch_from_touch_end(
             _total_collected: 0.0,
         },
         Pickable::default(),
+        Health::new(lvl),
+        DemoteCooldown::new(lvl),
     ))
         .observe(on_hover_collector_over)
         .id();
@@ -529,4 +534,3 @@ fn sun_thruster_touch(
         }
     }
 }
-
