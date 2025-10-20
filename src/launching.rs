@@ -361,15 +361,20 @@ fn on_hover_collector_over(
     ev: On<Pointer<Over>>,
     mut commands: Commands,
     query: Query<Entity, With<NavigationInstruments>>,
+    mut thruster_query: Query<&mut Thruster>,
 ) {
     // Hover only indicates potential selection; do not modify thrusters here
     //println!("hover over collector {:?}", ev.entity);
     commands.entity(ev.entity).insert(NavigationInstruments);
 
-    // Remove selection marker from others
+    // Remove selection marker from others and deactivate their thrusters
     for entity in query.iter() {
         if entity != ev.entity {
             commands.entity(entity).remove::<NavigationInstruments>();
+            // Deactivate thruster when removing navigation instruments
+            if let Ok(mut thruster) = thruster_query.get_mut(entity) {
+                thruster.active = false;
+            }
         }
     }
 }
@@ -529,4 +534,3 @@ fn sun_thruster_touch(
         }
     }
 }
-
