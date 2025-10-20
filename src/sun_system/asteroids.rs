@@ -10,6 +10,8 @@ use std::ops::Range;
 use std::time::Duration;
 use crate::collision::HitBox;
 use crate::sun_system::Level;
+use crate::physics::calc_gravity::Attractee;
+use crate::physics::directional_forces::{GravityForce, Mass};
 
 pub fn plugin(app: &mut App) {
     app.load_resource::<AsteroidAssets>();
@@ -190,6 +192,9 @@ fn spawn_asteroids(
                     .with_scale(Vec3::splat(0.01))
                     .with_rotation(Quat::from_axis_angle(Vec3::X, PI)),
                 Sprite::from(assets.asteroid.clone()),
+                Attractee,
+                GravityForce::default(),
+                Mass(0.1),
                 // Add individual hitbox for each asteroid
                 HitBox { radius: 2.5 },
                 Level{level:-1.},
