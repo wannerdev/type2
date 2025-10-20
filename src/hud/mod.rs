@@ -279,7 +279,7 @@ fn setup_hud(mut commands: Commands, solar_system_assets: Res<SolarSystemAssets>
             top: Val::Px(85.0),
             right: Val::Px(15.0),
             width: Val::Px(150.0),
-            height: Val::Px(100.0),
+            height: Val::Px(50.0),
             border: UiRect::all(Val::Px(BORDER)),
             ..default()
         },
@@ -310,13 +310,13 @@ fn setup_hud(mut commands: Commands, solar_system_assets: Res<SolarSystemAssets>
                 Text::new("DIST: 0"),
                 Node {
                     position_type: PositionType::Absolute,
-                    top: Val::Px(55.0),
-                    left: Val::Px(15.0),
+                    top: Val::Px(40.0),
+                    left: Val::Px(20.0),
                     ..default()
                 },
                 TextFont {
                     font: solar_system_assets.font.clone(),
-                    font_size: 12.0,
+                    font_size: 10.0,
                     ..default()
                 },
                 TextColor(Color::xyz(0.4811, 0.3064, 0.0253)),
@@ -884,9 +884,9 @@ fn update_highest_earner_display(
 
     if let Ok(mut text) = distance_text_query.single_mut() {
         if closest_distance < f32::MAX {
-            text.0 = format!("DIST: {:.0}", closest_distance);
+            text.0 = format!("DISTANCE {:.0}", closest_distance);
         } else {
-            text.0 = "DIST: 0".to_string();
+            text.0 = "DISTANCE 0".to_string();
         }
     }
 }
