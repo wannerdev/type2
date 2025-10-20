@@ -14,30 +14,38 @@ const PROJECTION_MAX_COUNT: usize = 250;
 #[require(Transform, Velocity, Mass, HitBox)]
 pub struct NavigationInstruments;
 
+#[derive(Resource, Default)]
+pub struct ShowAllOrbits(pub bool);
+
 pub fn draw_nav_projections(
     mut gizmos: Gizmos,
     attractor: Query<(&Transform, &Mass, &HitBox), With<Attractor>>,
-    query: Query<(Entity, &Transform, &Mass, &Velocity, &HitBox, Option<&FullOrbitAwarded>), (With<NavigationInstruments>, With<Attractee>)>,
+    query: Query<(Entity, &Transform, &Mass, &Velocity, &HitBox, Option<&FullOrbitAwarded>, Has<NavigationInstruments>), With<Attractee>>,
     mut commands: Commands,
+    show_all: Res<ShowAllOrbits>,
 ) {
     let (attractor_trans, attractor_mass, attractor_hitbox) = attractor
         .single()
         .expect("Cannot draw orbital projections if there is no attractor in the world");
 
-    query.iter().for_each(|(entity, i_trans, i_mass, i_velocity, i_hitbox, awarded)| {
-        draw_orbit_projection(
-            &mut gizmos,
-            attractor_trans,
-            attractor_mass,
-            attractor_hitbox,
-            i_trans,
-            i_mass,
-            i_velocity,
-            i_hitbox,
-            &mut commands,
-            entity,
-            awarded.is_some(),
-        )
+    query.iter().for_each(|(entity, i_trans, i_mass, i_velocity, i_hitbox, awarded, has_nav)| {
+        // Draw orbit if satellite is selected OR if show_all is enabled
+        if has_nav || show_all.0 {
+            draw_orbit_projection(
+                &mut gizmos,
+                attractor_trans,
+                attractor_mass,
+                attractor_hitbox,
+                i_trans,
+                i_mass,
+                i_velocity,
+                i_hitbox,
+                &mut commands,
+                entity,
+                awarded.is_some(),
+                has_nav,
+            )
+        }
     });
 }
 
@@ -53,6 +61,7 @@ fn draw_orbit_projection(
     commands: &mut Commands,
     entity: Entity,
     already_awarded: bool,
+    has_nav: bool,
 ) {
     let mut degrees_covered = 0.0;
 
