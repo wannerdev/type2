@@ -3,7 +3,7 @@
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::input::mouse::MouseWheel;
 use bevy::input::touch::{TouchInput, TouchPhase};
-use crate::sun_system::{init_sun_system};
+use crate::sun_system::{init_sun_system, SolarSystemAssets};
 use bevy::prelude::*;
 use crate::GameplaySystem;
 use crate::screens::Screen;
@@ -51,18 +51,29 @@ fn change_time_speed<const DELTA: i8>(mut time: ResMut<Time<Virtual>>) {
 }
 
 fn camera_zoom(
-    mut scroll_evr: MessageReader<MouseWheel>,
+    mut ev_scroll: EventReader<MouseWheel>,
     mut query: Query<(&mut Transform, &mut CameraZoom), With<Camera>>,
+    mut commands: Commands,
+    assets: Res<SolarSystemAssets>,
 ) {
     //stepped zoom with predefined levels
     let zoom_levels = [0.1, 0.15, 0.25, 0.5, 0.75];
 
     if let Ok((mut transform, mut camera_zoom)) = query.single_mut() {
-        for ev in scroll_evr.read() {
+        for ev in ev_scroll.read() {
+            let old_level = camera_zoom.level;
             if ev.y > 0.0 && camera_zoom.level > 0 {
                 camera_zoom.level -= 1;
             } else if ev.y < 0.0 && camera_zoom.level < zoom_levels.len() - 1 {
                 camera_zoom.level += 1;
+            }
+            
+            // Play zoom sound if level changed
+            if old_level != camera_zoom.level {
+                commands.spawn((
+                    AudioPlayer::new(assets.warning_sound.clone()),
+                    PlaybackSettings::DESPAWN,
+                ));
             }
         }
 
@@ -75,6 +86,8 @@ fn camera_pinch_zoom(
     mut pinch: ResMut<PinchZoomState>,
     mut er_touch: EventReader<TouchInput>,
     mut query: Query<(&mut Transform, &mut CameraZoom), With<Camera>>,
+    mut commands: Commands,
+    assets: Res<SolarSystemAssets>,
 ) {
     // Update active touches map
     for ev in er_touch.read() {
@@ -107,11 +120,21 @@ fn camera_pinch_zoom(
             if let Ok((mut transform, mut camera_zoom)) = query.single_mut() {
                 // same zoom levels as mouse
                 let zoom_levels = [0.1, 0.15, 0.25, 0.5, 0.75];
+                let old_level = camera_zoom.level;
                 if delta > 0.0 && camera_zoom.level < zoom_levels.len() - 1 {
                     camera_zoom.level -= 1;
                 } else if delta < 0.0 && camera_zoom.level > 0 {
                     camera_zoom.level += 1;
                 }
+                
+                // Play zoom sound if level changed
+                if old_level != camera_zoom.level {
+                    commands.spawn((
+                        AudioPlayer::new(assets.warning_sound.clone()),
+                        PlaybackSettings::DESPAWN,
+                    ));
+                }
+                
                 let zoom_level = zoom_levels[camera_zoom.level];
                 transform.scale = Vec3::splat(zoom_level);
             }
