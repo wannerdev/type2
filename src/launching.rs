@@ -151,7 +151,8 @@ fn start_new_launch(
     for e in current_marked.iter() {
         commands.entity(e).remove::<NavigationInstruments>();
     }
-let collector_id = commands.spawn((
+let mut ec = commands.spawn_empty();
+ec.insert((
         Fuel { amount: 1.5 },
         Level { level: lvl },
         Attractee,
@@ -162,6 +163,8 @@ let collector_id = commands.spawn((
             .with_scale(Vec3::splat(0.015)),
         Sprite::from(sprite),
         TextColor(Color::from(GREEN)),
+));
+ec.insert((
         Thruster::new(ThrusterDirection::Retrograde, 2.0),
         HitBox { radius: 4.0 },
         NavigationInstruments,
@@ -173,9 +176,9 @@ let collector_id = commands.spawn((
         Pickable::default(),
         Health::new(lvl),
         DemoteCooldown::new(lvl),
-    ))
-        .observe(on_hover_collector_over)
-        .id();
+));
+let collector_id = ec.id();
+commands.entity(collector_id).observe(on_hover_collector_over);
 
     commands.spawn((
         Text2d::new("0"),
@@ -302,7 +305,8 @@ fn start_launch_from_touch_end(
     for e in current_marked.iter() {
         commands.entity(e).remove::<NavigationInstruments>();
     }
-    let collector_id = commands.spawn((
+    let mut ec = commands.spawn_empty();
+ec.insert((
         Fuel { amount: 1.5 },
         Level { level: lvl },
         Attractee,
@@ -313,6 +317,8 @@ fn start_launch_from_touch_end(
             .with_scale(Vec3::splat(0.015)),
         Sprite::from(sprite),
         TextColor(Color::from(GREEN)),
+));
+ec.insert((
         Thruster::new(ThrusterDirection::Retrograde, 2.0),
         HitBox { radius: 4.0 },
         NavigationInstruments,
@@ -324,9 +330,9 @@ fn start_launch_from_touch_end(
         Pickable::default(),
         Health::new(lvl),
         DemoteCooldown::new(lvl),
-    ))
-        .observe(on_hover_collector_over)
-        .id();
+));
+let collector_id = ec.id();
+commands.entity(collector_id).observe(on_hover_collector_over);
 
     commands.spawn((
         Text2d::new("0"),

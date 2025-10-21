@@ -48,12 +48,11 @@ pub struct DamageSystemPlugin;
 
 impl Plugin for DamageSystemPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<DamageEvent>();
         app.add_systems(Update, (
             apply_sun_radiation_damage,
-            handle_damage_events,
             draw_damage_effects,
         ).in_set(GameplaySystem));
+        app.add_observer(handle_damage_events);
     }
 }
 
@@ -99,59 +98,61 @@ fn apply_sun_radiation_damage(
 }
 
 fn handle_damage_events(
-    mut evr: EventReader<DamageEvent>,
+    ev: On<DamageEvent>,
     mut q: Query<(&mut Health, &mut Level, &mut Sprite, &mut DemoteCooldown), With<Attractee>>,
     assets: Res<SolarSystemAssets>,
     time: Res<Time>,
     mut commands: Commands,
 ) {
-    for ev in evr.read() {
-        if let Ok((mut hp, mut lvl, mut spr, mut cd)) = q.get_mut(ev.target) {
-            // Check i-frame
-            cd.0.tick(time.delta());
-            if !cd.0.finished() && cd.0.elapsed_secs() < 0.5 {
-                continue; // Still in i-frame
-            }
-            
-            // Apply damage
-            hp.hp = (hp.hp - ev.amount).max(0.0);
-            let pct = hp.hp / hp.max_hp;
-            
-            // Calculate new level based on HP percentage
-            let new_lvl = if pct == 0.0 {
-                0.0
-            } else if pct <= 0.33 {
-                1.0
-            } else if pct <= 0.66 {
-                2.0
-            } else {
-                3.0
+    if let Ok((mut hp, mut lvl, mut spr, mut cd)) = q.get_mut(ev.target) {
+        // Check i-frame
+        cd.0.tick(time.delta());
+        if !cd.0.finished() && cd.0.elapsed_secs() < 0.5 {
+            return; // Still in i-frame
+        }
+
+        // Apply damage
+        hp.hp = (hp.hp - ev.amount).max(0.0);
+        let pct = hp.hp / hp.max_hp;
+
+        // Calculate new level based on HP percentage
+        let new_lvl = if pct == 0.0 {
+            0.0
+        } else if pct <= 0.33 {
+            1.0
+        } else if pct <= 0.66 {
+            2.0
+        } else {
+            3.0
+        };
+
+        // Handle level change
+        if new_lvl != lvl.level {
+            let old_lvl = lvl.level;
+            lvl.level = new_lvl;
+
+            // Update sprite
+            *spr = match new_lvl as i32 {
+                3 => Sprite::from(assets.collector3.clone()),
+                2 => Sprite::from(assets.collector2.clone()),
+                1 => Sprite::from(assets.collector.clone()),
+                _ => spr.clone(),
             };
-            
-            // Handle level change
-            if new_lvl != lvl.level {
-                let old_lvl = lvl.level;
-                lvl.level = new_lvl;
-                
-                // Update sprite
-                *spr = match new_lvl as i32 {
-                    3 => Sprite::from(assets.collector3.clone()),
-                    2 => Sprite::from(assets.collector2.clone()),
-                    1 => Sprite::from(assets.collector.clone()),
-                    _ => spr.clone(),
-                };
-                
-                // Start i-frame cooldown
-                cd.0 = Timer::from_seconds(0.5, TimerMode::Once);
-                
-                info!("Satellite demoted from level {} to level {} (HP: {:.1}/{:.1})", 
-                      old_lvl, new_lvl, hp.hp, hp.max_hp);
-            }
-            
-            // Destroy if HP reaches 0
-            if hp.hp <= 0.0 {
-                info!("Satellite destroyed by damage");
-                commands.entity(ev.target).despawn_recursive();
+
+            // Start i-frame cooldown
+            cd.0 = Timer::from_seconds(0.5, TimerMode::Once);
+
+            info!(
+                "Satellite demoted from level {} to level {} (HP: {:.1}/{:.1})",
+                old_lvl, new_lvl, hp.hp, hp.max_hp
+            );
+        }
+
+        // Destroy if HP reaches 0
+        if hp.hp <= 0.0 {
+            info!("Satellite destroyed by damage");
+            if let Ok(mut ec) = commands.get_entity(ev.target) {
+                ec.despawn();
             }
         }
     }
