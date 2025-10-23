@@ -48,4 +48,4 @@ jobs:
             # Assuming the `bevy build` command places it in a `dist` or `build` folder relative to the project root.
             # You might need to adjust this path based on the exact output of `bevy build --bundle`.
             # For now, let's assume it's in `target/web` as is common for web builds.
-            scp -r target/web/* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
+            scp -r target/bevy_web/web-release/* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
