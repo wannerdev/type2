@@ -1,0 +1,51 @@
+name: Deploy Web Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli
+
+      - name: Install wasm-opt
+        run: cargo install wasm-opt
+
+      - name: Install bevy_cli
+        run: cargo install --git https://github.com/TheBevyFlock/bevy_cli --locked bevy_cli
+
+      - name: Build web project
+        run: bevy build --release web --bundle -v
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p ${{ secrets.DEPLOY_PATH }}
+            rm -rf ${{ secrets.DEPLOY_PATH }}/*
+            # The build output is typically in `target/wasm-bindgen/release/` or similar.
+            # Assuming the `bevy build` command places it in a `dist` or `build` folder relative to the project root.
+            # You might need to adjust this path based on the exact output of `bevy build --bundle`.
+            # For now, let's assume it's in `target/web` as is common for web builds.
+            scp -r target/web/* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
