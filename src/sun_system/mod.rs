@@ -110,7 +110,7 @@ impl FromWorld for SolarSystemAssets {
             bg: assets.load("retro_grid_bg.png"),
             font: assets.load("fonts/lucon.ttf"),
             crash_sound: assets.load("sounds/collision.wav"),
-            warning_sound: assets.load("sounds/beepx3.wav"),
+            warning_sound: assets.load("sounds/zoom.wav"),
             music_loop: assets.load("sounds/music_loop.wav"),
         }
     }
