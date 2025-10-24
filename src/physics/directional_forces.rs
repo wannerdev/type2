@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::physics::velocity::Velocity;
+use crate::sun_system::navigation_instruments::NavigationInstruments;
 
 #[derive(Component, Debug, Copy, Clone, PartialEq, PartialOrd, Default)]
 pub struct Mass(pub f32);
@@ -13,7 +14,7 @@ pub struct ThrustForce(pub Vec2);
 pub(super) fn apply_directional_force(mut query: Query<(Option<&GravityForce>, Option<&ThrustForce>, &mut Velocity, &Mass)>, time: Res<Time>) {
     query.iter_mut().for_each(|(gravity, thrust, mut velocity, mass)| {
         let mut accumulated_forces = Vec2::ZERO;
-        
+
         if let Some(gravity) = gravity {
             accumulated_forces += gravity.0;
         }
@@ -39,21 +40,32 @@ pub(super) fn clear_forces(mut gravity: Query<&mut GravityForce>, mut thrust: Qu
     })
 }
 
-pub(super) fn draw_directional_forces(mut gizmos: Gizmos, gravity: Query<(&GravityForce, &Transform)>, thrust: Query<(&ThrustForce, &Transform)>, time: Res<Time<Fixed>>) {
+pub(super) fn draw_directional_forces(
+    mut gizmos: Gizmos, 
+    gravity: Query<(&GravityForce, &Transform)>, 
+    thrust: Query<(&ThrustForce, &Transform, Has<NavigationInstruments>)>, 
+    time: Res<Time<Fixed>>
+) {
     gravity.iter().for_each(|(i_gravity, i_trans)| {
-        draw_force_arrow(&mut gizmos, i_gravity.0, i_trans.translation.xy(), &time);
+        draw_force_arrow(&mut gizmos, i_gravity.0, i_trans.translation.xy(), &time, false);
     });
-    thrust.iter().for_each(|(i_thrust, i_trans)| {
-        draw_force_arrow(&mut gizmos, i_thrust.0, i_trans.translation.xy(), &time);
+    thrust.iter().for_each(|(i_thrust, i_trans, has_nav)| {
+        draw_force_arrow(&mut gizmos, i_thrust.0, i_trans.translation.xy(), &time, has_nav);
     })
 }
 
-fn draw_force_arrow(gizmos: &mut Gizmos, force: Vec2, at: Vec2, time: &Time<Fixed>) {
+fn draw_force_arrow(gizmos: &mut Gizmos, force: Vec2, at: Vec2, time: &Time<Fixed>, is_selected: bool) {
     if force == Vec2::ZERO {
         return;
     }
+
+    // Change color based on selection status
+    let color = if is_selected {
+        Color::srgb(0.0, 1.0, 0.5) // Bright cyan/green for selected
+    } else {
+        Color::srgb_u8(255, 0, 150) // Original pink/magenta for unselected
+    };
     
-    let color = Color::srgb_u8(255, 0, 150);
     gizmos.arrow_2d(
         at,
         at + (force * time.timestep().as_secs_f32() * 250.0),
