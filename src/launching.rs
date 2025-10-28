@@ -423,13 +423,16 @@ fn update_fuel_label(
 fn select_satellite_on_touch(
     mut er_touch: EventReader<TouchInput>,
     window_q: Query<&Window, With<PrimaryWindow>>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
+    camera_query: Query<(&Camera, &GlobalTransform, &Transform)>,
     mut commands: Commands,
     sats: Query<(Entity, &GlobalTransform, &HitBox), With<Satellite>>,
     current_marked: Query<Entity, With<NavigationInstruments>>,
 ) {
-    let Some((camera, cam_gt)) = camera_query.iter().next() else { return; };
+    let Some((camera, cam_gt, cam_t)) = camera_query.iter().next() else { return; };
     let _ = window_q.iter().next() else { return; };
+
+    // Determine zoom factor from camera transform scale (uniform scale expected)
+    let zoom = cam_t.scale.x.max(0.0001);
 
     for t in er_touch.read() {
         if t.phase != TouchPhase::Ended { continue; }
@@ -439,7 +442,8 @@ fn select_satellite_on_touch(
         for (e, gt, hb) in sats.iter() {
             let sat_pos = gt.translation().truncate();
             let dist = sat_pos.distance(world_pos);
-            let radius = hb.radius;
+            // Scale selection hitbox inversely with zoom so it stays consistent in screen space
+            let radius = hb.radius / zoom;
             if dist <= radius {
                 if let Some((_, best_dist)) = best {
                     if dist < best_dist { best = Some((e, dist)); }
